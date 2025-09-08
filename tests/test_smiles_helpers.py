@@ -20,7 +20,7 @@ from pysmiles.smiles_helper import (
     add_explicit_hydrogens, correct_aromatic_rings,
     valence, kekulize, dekekulize,
 )
-from pysmiles.testhelper import assertEqualGraphs, make_mol
+from tests.testhelper import assertEqualGraphs, make_mol
 
 
 @pytest.mark.parametrize('helper, kwargs, n_data_in, e_data_in, n_data_out, e_data_out', (

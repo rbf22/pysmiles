@@ -14,4 +14,4 @@
 # limitations under the License.
 
 import pytest
-pytest.register_assert_rewrite("pysmiles.testhelper")
+pytest.register_assert_rewrite("tests.testhelper")

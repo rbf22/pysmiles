@@ -40,10 +40,14 @@ def _equal_dicts(dict1, dict2, excluded_keys=None):
     return True
 
 
-def assertEqualGraphs(graph1, graph2, excluded_node_attrs=[], excluded_edge_attrs=[]):  # pylint: disable=invalid-name
+def assertEqualGraphs(graph1, graph2, excluded_node_attrs=None, excluded_edge_attrs=None):  # pylint: disable=invalid-name
     """
     Asserts that `graph1` and `graph2` are equal up to isomorphism.
     """
+    if excluded_node_attrs is None:
+        excluded_node_attrs = []
+    if excluded_edge_attrs is None:
+        excluded_edge_attrs = []
     out = nx.is_isomorphic(graph1, graph2,
                            node_match=partial(_equal_dicts, excluded_keys=excluded_node_attrs),
                            edge_match=partial(_equal_dicts, excluded_keys=excluded_edge_attrs))
@@ -62,7 +66,7 @@ def assertEqualGraphs(graph1, graph2, excluded_node_attrs=[], excluded_edge_attr
         score = 0
         for node_idx, node_jdx in match.items():
             node1 = graph1.nodes[node_idx]
-            node2 = graph2.nodes[node_idx]
+            node2 = graph2.nodes[node_jdx]
             for attr in (set(node1) | set(node2)) - set(excluded_node_attrs):
                 if node1.get(attr) == node2.get(attr):
                     score += 1

@@ -15,8 +15,9 @@
 
 import pytest
 
-from pysmiles import write_smiles, read_smiles
-from pysmiles.testhelper import assertEqualGraphs, make_mol
+from pysmiles.read_smiles import read_smiles
+from pysmiles.write_smiles import write_smiles
+from tests.testhelper import assertEqualGraphs, make_mol
 
 
 @pytest.mark.parametrize('node_data, edge_data, kwargs', (
@@ -28,7 +29,7 @@ from pysmiles.testhelper import assertEqualGraphs, make_mol
         [(0, 1, {'order': 1}),
          (1, 2, {'order': 1}),
          (2, 3, {'order': 1})],
-        dict(explicit_hydrogen=False, zero_order_bonds=True, reinterpret_aromatic=True),
+        {'explicit_hydrogen': False, 'zero_order_bonds': True, 'reinterpret_aromatic': True},
     ),
     (
         [(0, {'element': 'C', 'charge': 0, 'aromatic': False, 'hcount': 3}),
@@ -38,7 +39,7 @@ from pysmiles.testhelper import assertEqualGraphs, make_mol
         [(0, 1, {'order': 1}),
          (1, 2, {'order': 1}),
          (1, 3, {'order': 1})],
-        dict(explicit_hydrogen=False, zero_order_bonds=True, reinterpret_aromatic=True),
+        {'explicit_hydrogen': False, 'zero_order_bonds': True, 'reinterpret_aromatic': True},
     ),
     (
         [(0, {'element': 'C', 'charge': 0, 'aromatic': False, 'hcount': 2}),
@@ -50,7 +51,7 @@ from pysmiles.testhelper import assertEqualGraphs, make_mol
          (1, 2, {'order': 1}),
          (2, 3, {'order': 1}),
          (3, 4, {'order': 2})],
-        dict(explicit_hydrogen=False, zero_order_bonds=True, reinterpret_aromatic=True),
+        {'explicit_hydrogen': False, 'zero_order_bonds': True, 'reinterpret_aromatic': True},
     ),
     (
         [(0, {'element': 'C', 'charge': 0, 'aromatic': True, 'hcount': 1}),
@@ -67,7 +68,7 @@ from pysmiles.testhelper import assertEqualGraphs, make_mol
          (4, 5, {'order': 1.5}),
          (5, 0, {'order': 1.5}),
          (3, 6, {'order': 1})],
-        dict(explicit_hydrogen=False, zero_order_bonds=True, reinterpret_aromatic=False),
+        {'explicit_hydrogen': False, 'zero_order_bonds': True, 'reinterpret_aromatic': False},
     ),
     (
         [(0, {'element': 'C', 'charge': 0, 'aromatic': False, 'hcount': 1}),
@@ -82,7 +83,7 @@ from pysmiles.testhelper import assertEqualGraphs, make_mol
          (3, 4, {'order': 1}),
          (4, 0, {'order': 1}),
          (3, 6, {'order': 1})],
-        dict(explicit_hydrogen=False, zero_order_bonds=True, reinterpret_aromatic=True),
+        {'explicit_hydrogen': False, 'zero_order_bonds': True, 'reinterpret_aromatic': True},
     ),
     (
         [(0, {'element': 'C', 'charge': 0, 'aromatic': True, 'hcount': 1}),
@@ -106,7 +107,7 @@ from pysmiles.testhelper import assertEqualGraphs, make_mol
          (8, 9, {'order': 1.5}),
          (9, 0, {'order': 1.5}),
          (2, 7, {'order': 1.5})],
-        dict(explicit_hydrogen=False, zero_order_bonds=True, reinterpret_aromatic=True),
+        {'explicit_hydrogen': False, 'zero_order_bonds': True, 'reinterpret_aromatic': True},
     ),
     (
         [(0, {'element': 'C', 'charge': -1, 'aromatic': False, 'hcount': 3}),
@@ -116,7 +117,7 @@ from pysmiles.testhelper import assertEqualGraphs, make_mol
         [(0, 1, {'order': 1}),
          (0, 2, {'order': 1}),
          (2, 3, {'order': 1})],
-        dict(explicit_hydrogen=False, zero_order_bonds=True, reinterpret_aromatic=True),
+        {'explicit_hydrogen': False, 'zero_order_bonds': True, 'reinterpret_aromatic': True},
     ),
     (
         [(0, {'element': 'C', 'charge': -1, 'aromatic': False, 'hcount': 4}),
@@ -126,29 +127,29 @@ from pysmiles.testhelper import assertEqualGraphs, make_mol
         [(0, 1, {'order': 1}),
          (1, 2, {'order': 1}),
          (2, 3, {'order': 1})],
-        dict(explicit_hydrogen=False, zero_order_bonds=True, reinterpret_aromatic=True),
+        {'explicit_hydrogen': False, 'zero_order_bonds': True, 'reinterpret_aromatic': True},
     ),
     (
         [(0, {'element': 'C', 'charge': 0, 'aromatic': False, 'hcount': 4}),
          (1, {'element': 'C', 'charge': 0, 'aromatic': False, 'hcount': 4})],
         [],
-        dict(explicit_hydrogen=False, zero_order_bonds=False, reinterpret_aromatic=True),
+        {'explicit_hydrogen': False, 'zero_order_bonds': False, 'reinterpret_aromatic': True},
     ),
     (
         [('a', {'element': 'C', 'charge': 0, 'aromatic': False, 'hcount': 4}),
          (1, {'element': 'C', 'charge': 0, 'aromatic': False, 'hcount': 4})],
         [],
-        dict(explicit_hydrogen=False, zero_order_bonds=False, reinterpret_aromatic=True),
+        {'explicit_hydrogen': False, 'zero_order_bonds': False, 'reinterpret_aromatic': True},
     ),
     (
       [(0, {'element': 'Se', 'charge': 0, 'aromatic': False, 'hcount': 2})],
       [],
-      dict(explicit_hydrogen=False, zero_order_bonds=False, reinterpret_aromatic=True),
+      {'explicit_hydrogen': False, 'zero_order_bonds': False, 'reinterpret_aromatic': True},
     ),
     (
       [(0, {'element': 'As', 'charge': 0, 'aromatic': False, 'hcount': 3})],
       [],
-      dict(explicit_hydrogen=False, zero_order_bonds=False, reinterpret_aromatic=True),
+      {'explicit_hydrogen': False, 'zero_order_bonds': False, 'reinterpret_aromatic': True},
     ),
 ))
 def test_write_smiles(node_data, edge_data, kwargs):
