@@ -15,8 +15,8 @@
 
 import pytest
 import networkx as nx
-from pysmiles import read_smiles
-from pysmiles.testhelper import assertEqualGraphs, make_mol
+from pysmiles.read_smiles import read_smiles
+from tests.testhelper import assertEqualGraphs, make_mol
 
 
 @pytest.mark.parametrize(
