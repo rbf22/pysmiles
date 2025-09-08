@@ -17,7 +17,6 @@
 PySMILES: The lightweight python module for reading and writing SMILES strings.
 """
 
-import builtins
 from json import load
 
 
@@ -39,7 +38,7 @@ else:
 
 def _read_pte(pte_file_name):
     pte = {}
-    with open(pte_file_name) as pte_file:
+    with open(pte_file_name, encoding="utf-8") as pte_file:
         data = load(pte_file)
 
     for row in data['Rows']:
@@ -50,8 +49,3 @@ def _read_pte(pte_file_name):
 
 
 PTE = _read_pte(PTE_FILE_NAME)
-
-from .read_smiles import read_smiles
-from .write_smiles import write_smiles
-from .smiles_helper import (fill_valence, add_explicit_hydrogens,
-                            remove_explicit_hydrogens, correct_aromatic_rings)

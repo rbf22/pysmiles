@@ -48,10 +48,15 @@ ATOM_PATTERN = re.compile(r'^\[' + ISOTOPE_PATTERN + ELEMENT_PATTERN +
 # is the number of electrons in that orbital. In addition, we capture the full
 # electron config (from 7s...d10) in case we need to find the order of the
 # orbitals later.
-ELECTRON_CONFIG_PATTERN = (r'(?:\[[A-Z][a-z]?\])?((?:'
-                           r'(?:[1-9]s(?P<s>[1-2]))|(?:[1-9]p(?P<p>[1-6]))|(?:[1-9]d(?P<d>10|[1-9]))|(?:[1-9]f(?P<f>1[0-4]|[1-9]))'
-                           r'){1,4})(?:\(predicted\))?')
-ELECTRON_CONFIG_PATTERN = re.compile(ELECTRON_CONFIG_PATTERN)
+_ELECTRON_CONFIG_PATTERN_STR = (
+    r'(?:\[[A-Z][a-z]?\])?((?:'
+    r'(?:[1-9]s(?P<s>[1-2]))'
+    r'|(?:[1-9]p(?P<p>[1-6]))'
+    r'|(?:[1-9]d(?P<d>10|[1-9]))'
+    r'|(?:[1-9]f(?P<f>1[0-4]|[1-9]))'
+    r'){1,4})(?:\(predicted\))?'
+)
+ELECTRON_CONFIG_PATTERN: re.Pattern = re.compile(_ELECTRON_CONFIG_PATTERN_STR)
 
 AROMATIC_ATOMS = "B C N O P S Se As *".split()
 
@@ -79,11 +84,10 @@ def parse_atom(atom):
             # about it
             return {'element': atom.capitalize(), 'charge': 0,
                     'aromatic': atom.islower()}
-        else:
-            return defaults.copy()
+        return defaults.copy()
     match = ATOM_PATTERN.match(atom)
     if match is None:
-        raise ValueError('The atom {} is malformatted'.format(atom))
+        raise ValueError(f'The atom {atom} is malformatted')
     out = defaults.copy()
     out.update({k: v for k, v in match.groupdict().items() if v is not None})
 
@@ -173,7 +177,7 @@ def format_atom(molecule, node_key, default_element='*'):
         chargestr = ''
 
     if class_ != '':
-        class_ = ':{}'.format(class_)
+        class_ = f':{class_}'
     fmt = '[{isotope}{name}{stereo}{hcount}{charge}{class_}]'
     return fmt.format(isotope=isotope, name=name, stereo='', hcount=hcountstr,
                       charge=chargestr, class_=class_)
@@ -255,7 +259,9 @@ def add_explicit_hydrogens(mol):
         if 'rs_isomer' in mol.nodes[n_idx]:
             # Replace the implicit hydrogen index  in the stereo definition for
             # the explicit one.
-            mol.nodes[n_idx]['rs_isomer'] = tuple(n if n != n_idx else idxs[0] for n in mol.nodes[n_idx]['rs_isomer'])
+            mol.nodes[n_idx]['rs_isomer'] = tuple(
+                n if n != n_idx else idxs[0] for n in mol.nodes[n_idx]['rs_isomer']
+            )
 
 
 def remove_explicit_hydrogens(mol):
@@ -298,23 +304,30 @@ def remove_explicit_hydrogens(mol):
                             and ez_neighbor not in to_remove):
                         # Found the other ligand that's connected to the anchor
                         # with a single bond
-                        mol.nodes[ez_neighbor]['ez_isomer'] = mol.nodes[n_idx]['ez_isomer'].copy()
-                        mol.nodes[ez_neighbor]['ez_isomer'][-1] = 'trans' if mol.nodes[ez_neighbor]['ez_isomer'][1] == 'cis' else 'cis'
+                        mol.nodes[ez_neighbor]['ez_isomer'] = (
+                            mol.nodes[n_idx]['ez_isomer'].copy())
+                        new_stereo = ('trans' if mol.nodes[ez_neighbor]
+                                      ['ez_isomer'][1] == 'cis' else 'cis')
+                        mol.nodes[ez_neighbor]['ez_isomer'][-1] = new_stereo
                         mol.nodes[ez_neighbor]['ez_isomer'][0] = ez_neighbor
 
                         ez_partner = mol.nodes[n_idx]['ez_isomer'][3]
                         mol.nodes[ez_partner]['ez_isomer'][3] = ez_neighbor
-                        mol.nodes[ez_partner]['ez_isomer'][-1] = mol.nodes[ez_neighbor]['ez_isomer'][-1]
+                        mol.nodes[ez_partner]['ez_isomer'][-1] = (
+                            mol.nodes[ez_neighbor]['ez_isomer'][-1])
                         break
                 else:  # No break
                     # Don't remove the hydrogen, since we need it for the
                     # chirality
                     continue
             to_remove.add(n_idx)
-            mol.nodes[neighbor]['hcount'] = mol.nodes[neighbor].get('hcount', 0) + 1
+            mol.nodes[neighbor]['hcount'] = (
+                mol.nodes[neighbor].get('hcount', 0) + 1)
             if 'rs_isomer' in mol.nodes[neighbor]:
                 # Replace the explicit hydrogen index for the implicit one
-                mol.nodes[neighbor]['rs_isomer'] = tuple(n if n != n_idx else neighbor for n in mol.nodes[neighbor]['rs_isomer'])
+                mol.nodes[neighbor]['rs_isomer'] = tuple(
+                    n if n != n_idx else neighbor
+                    for n in mol.nodes[neighbor]['rs_isomer'])
     mol.remove_nodes_from(to_remove)
     for n_idx in mol.nodes:
         if 'hcount' not in mol.nodes[n_idx]:
@@ -420,8 +433,9 @@ def valence(atom):
     electron_config = {k: int(v) for k, v in match.groupdict(default=0).items()}
     # No idea how d or f electrons contribute to valency. The last case (p+s==0)
     # is there for Pd, which has config s0p0d10f0...
-    if (electron_config['d'] not in (0, 10) or electron_config['f'] not in (0, 14)
-            or (not electron_config['s']+electron_config['p'])):
+    if (electron_config['d'] not in (0, 10)
+            or electron_config['f'] not in (0, 14)
+            or (not electron_config['s'] + electron_config['p'])):
         return []  # No clue what the valence should be or even means
 
     electrons = electron_config['s'] + electron_config['p']
@@ -440,7 +454,6 @@ def valence(atom):
     # Of course all single electrons that got paired are no longer single
     single_electrons -= paired_electrons
     # Figure out how many orbitals are still empty. Maybe useful for later
-    empty_orbitals = number_of_orbitals - single_electrons - paired_electrons
     assert electrons == 0, f"There are {electrons=}"
 
     # Excite any paired electrons to a higher orbital to deal with
@@ -554,7 +567,9 @@ def correct_aromatic_rings(mol, strict=True, estimation_threshold=None, max_ring
     # set the aromatic attribute to False for all nodes, and swap all aromatic
     # bonds to single
     # We need to add wildcard atoms to arom_atoms, but that breaks further down...
-    arom_atoms = {node for node, aromatic in mol.nodes(data='aromatic') if aromatic}
+    arom_atoms = {
+        node for node, aromatic in mol.nodes(data='aromatic') if aromatic
+    }
     stars = {node for node in mol if mol.nodes[node].get('element', '*') == '*'}
     nx.set_node_attributes(mol, False, 'aromatic')
     for edge in mol.edges:
@@ -565,7 +580,10 @@ def correct_aromatic_rings(mol, strict=True, estimation_threshold=None, max_ring
     ds_graph = _prune_nodes(arom_atoms|stars, mol)
 
     sub_ds_graph = mol.subgraph(ds_graph).copy()
-    sub_ds_graph.remove_edges_from(e for e in sub_ds_graph.edges if sub_ds_graph.edges[e].get('order') == 0)
+    edges_to_remove = [
+        e for e in sub_ds_graph.edges if sub_ds_graph.edges[e].get('order') == 0
+    ]
+    sub_ds_graph.remove_edges_from(edges_to_remove)
     for u, v in sub_ds_graph.edges:
         # Prefer not matching edges with *, especially *-* edges.
         sub_ds_graph.edges[u, v]['w'] = 0.1**len({u, v} & stars)
@@ -591,8 +609,7 @@ def correct_aromatic_rings(mol, strict=True, estimation_threshold=None, max_ring
         msg = "Your molecule is invalid and cannot be kekulized."
         if strict:
             raise SyntaxError(msg)
-        else:
-            LOGGER.warning(msg)
+        LOGGER.warning(msg)
 
     # First we kekulize everything, then we dekekulize the aromatic parts.
     # Otherwise, c12ccccc1[nH]cc2 fails; you need to get rid of some nodes in
@@ -626,9 +643,16 @@ def kekulize(mol):
         If no alternating single and double bonds can be assigned to the
         aromatic region of ``mol``.
     """
-    arom_nodes = {n for n in mol if mol.nodes[n].get('aromatic') and mol.nodes[n].get('element', '*') in AROMATIC_ATOMS}
+    arom_nodes = {
+        n for n in mol if mol.nodes[n].get('aromatic') and
+        mol.nodes[n].get('element', '*') in AROMATIC_ATOMS
+    }
     aromatic_mol = mol.subgraph(arom_nodes).copy()
-    aromatic_mol.remove_edges_from(e for e in aromatic_mol.edges if aromatic_mol.edges[e].get('order') == 0)
+    edges_to_remove = [
+        e for e in aromatic_mol.edges
+        if aromatic_mol.edges[e].get('order') == 0
+    ]
+    aromatic_mol.remove_edges_from(edges_to_remove)
     matching = nx.max_weight_matching(aromatic_mol)
     if not nx.is_perfect_matching(aromatic_mol, matching):
         raise ValueError('Aromatic region cannot be kekulized.')
@@ -693,7 +717,10 @@ def _ring_is_aromatic(mol, nodes):
     bool
     """
     nodes = set(nodes)
-    double_bonds = {frozenset(e) for e in mol.edges if mol.edges[e].get('order') == 2 and set(e) <= nodes}
+    double_bonds = {
+        frozenset(e) for e in mol.edges
+        if mol.edges[e].get('order') == 2 and set(e) <= nodes
+    }
     is_perfect = sorted(n for e in double_bonds for n in e) == sorted(nodes)
     return is_perfect
 
@@ -706,13 +733,14 @@ def _estimate_aromatic_cycles(mol):
     # Given those requirements, the aromatic system is spanned by the
     # maximal matching
     bond_orders = {}
-    for node in mol:
+    for node, data in mol.nodes(data=True):
         # We'll make a set because we don't care how often each order is present,
         # and this way we can do an easy subset comparison
         bond_orders[node] = {mol[node][n].get('order', 1) for n in mol[node]}
     nodes_with_correct_bonds = {n for n in bond_orders if {1, 2} <= bond_orders[n]}
     submol = mol.subgraph(nodes_with_correct_bonds)
-    submol = submol.edge_subgraph((e for c in nx.cycle_basis(submol) for e in zip(c, c[1:] + [c[0]])))
+    edges = (e for c in nx.cycle_basis(submol) for e in zip(c, c[1:] + [c[0]]))
+    submol = submol.edge_subgraph(edges)
     # Maybe, matching is just the double bonds in submol?
     matching = nx.max_weight_matching(submol, weight='order')
     aromatic_nodes = {n for e in matching for n in e}
@@ -762,7 +790,9 @@ def dekekulize(mol, estimation_threshold=None, max_ring_size=None):
     # https://pubmed.ncbi.nlm.nih.gov/22780427/
     # https://ringdecomposerlib.readthedocs.io/en/latest/
 
-    correct_element = {n for n in mol if mol.nodes[n].get('element', '*') in AROMATIC_ATOMS}
+    correct_element = {
+        n for n in mol if mol.nodes[n].get('element', '*') in AROMATIC_ATOMS
+    }
     submol = mol.subgraph(correct_element).copy()
     submol.remove_edges_from((e for e in mol.edges if mol.edges[e].get('order') == 0))
 
@@ -831,7 +861,7 @@ def increment_bond_orders(molecule, max_bond_order=3):
     conn_degree = dict(subgraph.degree())
 
     def order(edge):
-        return (sorted([conn_degree[ndx] for ndx in edge]) + 
+        return (sorted([conn_degree[ndx] for ndx in edge]) +
                 sorted([-missing_bonds[ndx] for ndx in edge]))
 
     prio_queue = sorted(subgraph.edges, key=order, reverse=True)
@@ -928,7 +958,9 @@ def _annotate_ez_isomers(molecule, ez_atoms):
     for anchor1, anchor2, order in molecule.edges(data='order'):
         if order != 2:
             continue
-        if (anchor1 not in ez_atoms and anchor2 in ez_atoms) or (anchor2 not in ez_atoms and anchor1 in ez_atoms):
+        anchor1_in_ez = anchor1 in ez_atoms
+        anchor2_in_ez = anchor2 in ez_atoms
+        if anchor1_in_ez != anchor2_in_ez:
             msg = (f"Dangling E/Z isomer token for double bond between {anchor1} {anchor2}.")
             raise ValueError(msg)
         anchors = [anchor1, anchor2]
@@ -986,13 +1018,9 @@ def _interpret_cis_trans_tokens(molecule, ez_pairs):
         molecule.nodes[ligand_first]['ez_isomer'] = molecule.nodes[ligand_first].get('ez_isomer', [])
         molecule.nodes[ligand_second]['ez_isomer'] = molecule.nodes[ligand_second].get('ez_isomer', [])
         # annotate ligands
-        molecule.nodes[ligand_first]['ez_isomer'].append((ligand_first,
-                                                          anchor_first,
-                                                          anchor_second,
-                                                          ligand_second,
-                                                          ez_isomer))
-        molecule.nodes[ligand_second]['ez_isomer'].append((ligand_second,
-                                                           anchor_second,
-                                                           anchor_first,
-                                                           ligand_first,
-                                                           ez_isomer))
+        molecule.nodes[ligand_first]['ez_isomer'].append(
+            (ligand_first, anchor_first, anchor_second, ligand_second, ez_isomer)
+        )
+        molecule.nodes[ligand_second]['ez_isomer'].append(
+            (ligand_second, anchor_second, anchor_first, ligand_first, ez_isomer)
+        )

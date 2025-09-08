@@ -228,4 +228,3 @@ def write_smiles(molecule, default_element='*', start=None):
         LOGGER.info('Be aware the specified molecule is disconnected and '
                     'consists of %d connected components.', len(smiles))
     return '.'.join(smiles)
-

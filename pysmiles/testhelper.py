@@ -16,8 +16,6 @@
 Contains a unittest.TestCase subclass that has an `assertEqualGraphs` method.
 """
 from functools import partial
-import operator
-import unittest
 
 import networkx as nx
 
@@ -29,10 +27,17 @@ def make_mol(node_data, edge_data):
     return mol
 
 
-def _equal_dicts(dict1, dict2, excluded_keys=[]):
+def _equal_dicts(dict1, dict2, excluded_keys=None):
+    if excluded_keys is None:
+        excluded_keys = []
     dict1_keys = set(dict1.keys()) - set(excluded_keys)
     dict2_keys = set(dict2.keys()) - set(excluded_keys)
-    return dict1_keys == dict2_keys and {k1: dict1[k1] for k1 in dict1_keys} == {k2: dict2[k2] for k2 in dict1_keys}
+    if dict1_keys != dict2_keys:
+        return False
+    for key in dict1_keys:
+        if dict1[key] != dict2[key]:
+            return False
+    return True
 
 
 def assertEqualGraphs(graph1, graph2, excluded_node_attrs=[], excluded_edge_attrs=[]):  # pylint: disable=invalid-name

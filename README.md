@@ -259,6 +259,33 @@ import logging
 logging.getLogger('pysmiles').setLevel(logging.CRITICAL)  # Anything higher than warning
 ```
 
+## Development
+This project uses [Poetry](https://python-poetry.org/) for dependency management. To set up the development environment, first install Poetry, and then run:
+
+```bash
+poetry install
+```
+
+This will create a virtual environment and install all the necessary dependencies.
+
+### Running tests and linters
+This project uses `pytest` for testing, and `ruff`, `pylint`, `mypy`, and `deptry` for linting and static analysis. A `Makefile` is provided to simplify running these tools.
+
+To run the tests:
+```bash
+make run-tests
+```
+
+To run the linters and static analysis tools:
+```bash
+make run-linter
+make run-pylint
+make run-mypy
+make run-deptry
+```
+
+You can also use `make run-linter-fix` to automatically fix some linting issues.
+
 ## Limitations
 - The writer produces non-recommended SMILES strings (as per OpenSmiles).
 - The writer is better described as a "serializer": if the graph provided
