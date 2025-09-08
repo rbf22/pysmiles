@@ -60,20 +60,25 @@ class SMILESTest(RuleBasedStateMachine):
             # Make a new fragment, and merge the two.
             new_fragment = data.draw(FRAGMENTS, label='new_fragment')
             new_fragment = read_smiles(new_fragment)
-            mapping = dict(zip(range(len(new_fragment)), range(len(self.mol), len(self.mol)+len(new_fragment))))
+            mapping = dict(zip(
+                range(len(new_fragment)),
+                range(len(self.mol), len(self.mol) + len(new_fragment))
+            ))
             nx.relabel_nodes(new_fragment, mapping, copy=False)
             # need to have at least one hydrogen or * to add an edge.
             candidates = self._get_bonding_nodes(new_fragment)
             assume(candidates)
             second_node = data.draw(st.sampled_from(sorted(candidates)), label='second_node')
             self.mol.update(new_fragment)
-        orders = [self.mol.nodes[first_node].get('hcount', 0), self.mol.nodes[second_node].get('hcount', 0), 4]
+        orders = [self.mol.nodes[first_node].get('hcount', 0),
+                  self.mol.nodes[second_node].get('hcount', 0), 4]
         if self.mol.nodes[first_node].get('element', '*') == '*':
             orders[0] = 4
         if self.mol.nodes[second_node].get('element', '*') == '*':
             orders[1] = 4
         max_order = min(orders)
-        order = data.draw(st.one_of(st.integers(min_value=0, max_value=max_order)), label='order')
+        order = data.draw(st.one_of(st.integers(min_value=0, max_value=max_order)),
+                          label='order')
         self.mol.add_edge(first_node, second_node, order=order)
         self.mol.nodes[first_node]['hcount'] -= order
         self.mol.nodes[second_node]['hcount'] -= order
@@ -127,8 +132,15 @@ class SMILESTest(RuleBasedStateMachine):
 
     @rule(data=st.data())
     def change_charge(self, data):
-        candidates = [(idx, self.mol.nodes[idx]['hcount']) for idx in self._get_bonding_nodes(self.mol)]
-        delta = st.fixed_dictionaries({}, optional={idx: st.integers(min_value=-hcount, max_value=hcount) for (idx, hcount) in candidates})
+        candidates = [
+            (idx, self.mol.nodes[idx]['hcount'])
+            for idx in self._get_bonding_nodes(self.mol)
+        ]
+        optional = {
+            idx: st.integers(min_value=-hcount, max_value=hcount)
+            for (idx, hcount) in candidates
+        }
+        delta = st.fixed_dictionaries({}, optional=optional)
         delta = data.draw(delta, label='charge change')
         for idx, charge in delta.items():
             self.mol.nodes[idx]['charge'] += charge
@@ -161,6 +173,8 @@ class SMILESTest(RuleBasedStateMachine):
         correct_aromatic_rings(reference)
         # note(found.nodes(data=True))
         # note(found.edges(data=True))
-        assertEqualGraphs(reference, found, excluded_node_attrs=['_pos', '_atom_str'], excluded_edge_attrs=['_pos', '_bond_str'])
+        assertEqualGraphs(reference, found,
+                          excluded_node_attrs=['_pos', '_atom_str'],
+                          excluded_edge_attrs=['_pos', '_bond_str'])
 
 Tester = SMILESTest.TestCase

@@ -27,7 +27,6 @@ from .smiles_helper import (add_explicit_hydrogens, remove_explicit_hydrogens,
                             parse_atom, fill_valence, bonds_missing, format_atom,
                             correct_aromatic_rings,
                             _mark_chiral_atoms, _annotate_ez_isomers)
-from .write_smiles import write_smiles_component
 
 LOGGER = logging.getLogger(__name__)
 
@@ -128,7 +127,7 @@ def base_smiles_parser(smiles, strict=True, node_attr='desc', edge_attr='desc'):
         ``_pos``.
     List[Tuple[Tuple[int, int, str], Tuple[int, int, str]]]
         A list of E/Z isomer pairs, where the integers are node indices and last
-        element is the directional token from the smiles string (*i.e.* / or \).
+        element is the directional token from the smiles string (*i.e.* / or \\).
     List[Tuple[int, int, {edge_attr: str, '_pos': int}]
         A list of created ring bonds, to be used for R/S isomer annotation. It
         contains tuples consisting of 2 node indices, and a dictionary
@@ -143,8 +142,6 @@ def base_smiles_parser(smiles, strict=True, node_attr='desc', edge_attr='desc'):
     current_ez = None
     ez_isomer_atoms = {}
     created_ring_bonds = []
-    prev_token = None
-    prev_type = None
     for tokentype, token_idx, token in _tokenize(smiles):
         if tokentype == TokenType.ATOM:
             mol.add_node(idx, **{node_attr: token, '_pos': token_idx})
@@ -201,8 +198,6 @@ def base_smiles_parser(smiles, strict=True, node_attr='desc', edge_attr='desc'):
         elif tokentype == TokenType.EZSTEREO:  # pragma: no branch
             ez_isomer_atoms[anchor] = token
             ez_isomer_atoms[idx] = token
-        prev_token = token
-        prev_type = tokentype
 
     if ring_nums and strict:
         raise KeyError('Unmatched ring indices {}'.format(list(ring_nums.keys())))
@@ -288,8 +283,9 @@ def read_smiles(smiles, explicit_hydrogen=False, zero_order_bonds=True,
             attrs = mol.nodes[node]
             # Grab some of the smiles string for debugging purposes
             surrounding_characters = 5
-            node_position = (attrs['_pos'] - surrounding_characters,
-                             attrs['_pos'] + len(attrs['_atom_str']) + surrounding_characters)
+            start = attrs['_pos'] - surrounding_characters
+            end = attrs['_pos'] + len(attrs['_atom_str']) + surrounding_characters
+            node_position = (start, end)
             if node_position[0] < 0:
                 left_idx = 0
                 prefix = ''
